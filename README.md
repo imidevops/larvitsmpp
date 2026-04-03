@@ -2,6 +2,46 @@
 [![Dependencies](https://david-dm.org/larvit/larvitsmpp.svg)](https://david-dm.org/larvit/larvitsmpp.svg)
 [![Coverage Status](https://coveralls.io/repos/larvit/larvitsmpp/badge.svg)](https://coveralls.io/github/larvit/larvitsmpp)
 
+# My Contributions
+
+
+### Problems fixed:
+- submit_sm_resp was sent without message_id, causing Kannel to store
+  DLR entries in Redis with key ts=0, making DLR matching impossible
+- multipart (long) SMS parts also had no message_id in their responses
+- stat field in DLR message body was 'UNDELIVERABLE' instead of SMPP
+  spec compliant 'UNDELIV' (7 chars), causing Kannel to ignore the
+  status and always mark as DELIVRD
+- smsId was never set on server-side smsObj, causing smsDlr() to bail
+  out with 'Trying to send DLR with no smsId' error
+
+### Changes:
+  lib/session.js
+  - Generate UUID message_id before sending submit_sm_resp (single part)
+  - Generate UUID message_id per part in longSms() (multipart)
+  - Store msgId on longSmses group so checkLongSmses() can use it
+  - Set smsId on smsObj for both single and multipart assembled messages
+  - Move sendReturn() call to happen before emitting sms event
+
+  lib/utils.js
+  - Fix stat:UNDELIVERABLE -> stat:UNDELIV in DLR short_message body
+  - Fix dlvrd field to correctly reflect delivery status
+
+  lib/defs.js
+  - Fix MESSAGE_STATE key mappings for correct UNDELIV status routing
+
+  app.js
+  - Add the DLRs return logic
+
+    
+### Tested with:
+  - Kannel SMS gateway + Redis DLR storage
+  - Single part SMS DLR flow (DELIVRD and UNDELIV)
+  - Multipart (concatenated) SMS DLR flow
+  - Wireshark PCAP verified correct message_id in submit_sm_resp PDU"
+
+
+
 # Larv IT SMPP
 
 This is a simplified implementation of the SMPP protocol.
